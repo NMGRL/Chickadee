@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+from sqlalchemy.ext.declarative import declared_attr
+
 from application import db
 import string
 
@@ -21,10 +23,20 @@ ALPHAS = [a for a in seeds] + ['{}{}'.format(a, b)
                                for a in seeds
                                for b in seeds]
 
-class SampleTbl(db.Model):
-    __tablename__ = 'SampleTbl'
+
+class Base(object):
     id = db.Column(db.Integer, primary_key=True)
+
+    @declared_attr
+    def __tablename__(self):
+        return self.__name__
+
+
+class Named(object):
     name = db.Column(db.String(80))
+
+
+class SampleTbl(Base, Named, db.Model):
     projectID = db.Column(db.Integer, db.ForeignKey('ProjectTbl.id'))
     materialID = db.Column(db.Integer, db.ForeignKey('MaterialTbl.id'))
 
@@ -32,24 +44,17 @@ class SampleTbl(db.Model):
     material = db.relationship('MaterialTbl', backref=db.backref('materials', lazy=True))
 
 
-class ProjectTbl(db.Model):
-    __tablename__ = 'ProjectTbl'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80))
+class ProjectTbl(Base, Named, db.Model):
     principal_investigatorID = db.Column(db.Integer, db.ForeignKey('PrincipalInvestigatorTbl.id'))
 
     principal_investigator = db.relationship('PrincipalInvestigatorTbl', backref=db.backref('projects', lazy=True))
 
 
-class MaterialTbl(db.Model):
-    __tablename__ = 'MaterialTbl'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80))
+class MaterialTbl(Base, Named, db.Model):
     grainsize = db.Column(db.String(80))
 
 
-class PrincipalInvestigatorTbl(db.Model):
-    __tablename__ = 'PrincipalInvestigatorTbl'
+class PrincipalInvestigatorTbl(Base, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     last_name = db.Column(db.String(120))
     first_initial = db.Column(db.String(120))
@@ -62,9 +67,7 @@ class PrincipalInvestigatorTbl(db.Model):
         return name
 
 
-class AnalysisTbl(db.Model):
-    __tablename__ = 'AnalysisTbl'
-    id = db.Column(db.Integer, primary_key=True)
+class AnalysisTbl(Base, db.Model):
     timestamp = db.Column(db.DateTime)
     aliquot = db.Column(db.Integer)
     increment = db.Column(db.Integer, nullable=True)
@@ -86,12 +89,32 @@ class AnalysisTbl(db.Model):
     def runid(self):
         return '{}-{}{}'.format(self.irradiation_position.identifier, self.aliquot, self.step)
 
+    @property
+    def irradiation_info(self):
 
-class IrradiationPositionTbl(db.Model):
-    __tablename__ = 'IrradiationPositionTbl'
-    id = db.Column(db.Integer, primary_key=True)
+        level = self.irradiation_position.level
+        irrad = level.irradiation
+
+        return '{}{} {}'.format(irrad.name, level.name, self.irradiation_position.position)
+
+
+class IrradiationPositionTbl(Base, db.Model):
     identifier = db.Column(db.String(80))
-    sampleID = db.Column(db.Integer, db.ForeignKey('SampleTbl.id'))
+    position = db.Column(db.Integer)
 
+    levelID = db.Column(db.Integer, db.ForeignKey('LevelTbl.id'))
+    level = db.relationship('LevelTbl')
+
+    sampleID = db.Column(db.Integer, db.ForeignKey('SampleTbl.id'))
     sample = db.relationship('SampleTbl')
+
+
+class IrradiationTbl(Base, Named, db.Model):
+    pass
+
+
+class LevelTbl(Base, Named, db.Model):
+    irradiationID = db.Column(db.Integer, db.ForeignKey('IrradiationTbl.id'))
+    irradiation = db.relationship('IrradiationTbl')
+
 # ============= EOF =============================================

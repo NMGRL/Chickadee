@@ -25,6 +25,7 @@ api = Api(api_blueprint, prefix='/api/v1')
 
 
 def auth(func):
+    # disable authorization for browswer based api testing only
     if os.getenv('JWT_ENABLED') == '1':
         return jwt_required()(func)
     else:
@@ -101,24 +102,37 @@ class Analysis(Resource):
     def get(self):
         args = request.args
         project = args.get('project')
+        sample = args.get('sample')
+        material = args.get('material')
 
         def make_result(r):
             return {'RunID': r.runid,
+                    'Identifier': r.irradiation_position.identifier,
+                    'Aliquot': r.aliquot,
+                    'Increment': (r.increment,r.step),
                     'RunDate': r.timestamp.isoformat(),
                     'Sample': r.irradiation_position.sample.name,
-                    'Material': r.irradiation_position.sample.material.name}
+                    'Material': r.irradiation_position.sample.material.name,
+                    'IrradiationInfo': r.irradiation_info}
 
+        q = AnalysisTbl.query
+        q = q.join(IrradiationPositionTbl)
+        q = q.join(SampleTbl)
         if project:
-            q = AnalysisTbl.query
-            q = q.join(IrradiationPositionTbl)
-            q = q.join(SampleTbl)
             q = q.join(ProjectTbl)
-            # q = q.join(MaterialTbl)
             q = q.filter(ProjectTbl.name == project)
             q = q.filter(AnalysisTbl.analysis_type == 'unknown')
 
-            results = q.all()
-            return [make_result(ri) for ri in results]
+        if sample:
+            q = q.filter(SampleTbl.name == sample)
+
+        if material:
+            q = q.join(MaterialTbl)
+            q = q.filter(MaterialTbl.name == material)
+
+        results = q.all()
+
+        return [make_result(ri) for ri in results]
 
 
 api.add_resource(Sample, '/sample')
