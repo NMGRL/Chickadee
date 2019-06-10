@@ -14,7 +14,12 @@
 # limitations under the License.
 # ===============================================================================
 from application import db
+import string
 
+seeds = string.ascii_uppercase
+ALPHAS = [a for a in seeds] + ['{}{}'.format(a, b)
+                               for a in seeds
+                               for b in seeds]
 
 class SampleTbl(db.Model):
     __tablename__ = 'SampleTbl'
@@ -56,4 +61,37 @@ class PrincipalInvestigatorTbl(db.Model):
             name = '{}, {}'.format(name, self.first_initial)
         return name
 
+
+class AnalysisTbl(db.Model):
+    __tablename__ = 'AnalysisTbl'
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime)
+    aliquot = db.Column(db.Integer)
+    increment = db.Column(db.Integer, nullable=True)
+    analysis_type = db.Column(db.String(80))
+
+    irradiation_positionID = db.Column(db.Integer, db.ForeignKey('IrradiationPositionTbl.id'))
+    irradiation_position = db.relationship('IrradiationPositionTbl')
+
+    @property
+    def step(self):
+        inc = self.increment
+        if inc is not None:
+            s = ALPHAS[inc]
+        else:
+            s = ''
+        return s
+
+    @property
+    def runid(self):
+        return '{}-{}{}'.format(self.irradiation_position.identifier, self.aliquot, self.step)
+
+
+class IrradiationPositionTbl(db.Model):
+    __tablename__ = 'IrradiationPositionTbl'
+    id = db.Column(db.Integer, primary_key=True)
+    identifier = db.Column(db.String(80))
+    sampleID = db.Column(db.Integer, db.ForeignKey('SampleTbl.id'))
+
+    sample = db.relationship('SampleTbl')
 # ============= EOF =============================================

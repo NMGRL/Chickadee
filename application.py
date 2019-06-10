@@ -15,7 +15,10 @@
 # ===============================================================================
 from flask import Flask
 from os import getenv
+
+from flask_jwt import JWT
 from flask_sqlalchemy import SQLAlchemy
+from auth import verify, identity
 
 
 class Chickadee(Flask):
@@ -30,12 +33,13 @@ app = Chickadee(__name__)
 user = getenv('ARGONSERVER_DB_USER')
 pwd = getenv('ARGONSERVER_DB_PWD')
 host = getenv('ARGONSERVER_HOST')
-name = 'pychrondvc_samplesubmit'
+dbname = getenv('PYCHRON_DB_NAME')
 
-uri = 'mysql+pymysql://{}:{}@{}/{}?connect_timeout=3'.format(user, pwd, host, name)
+uri = 'mysql+pymysql://{}:{}@{}/{}?connect_timeout=3'.format(user, pwd, host, dbname)
 app.config['SQLALCHEMY_DATABASE_URI'] = uri
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+app.config['SECRET_KEY'] = getenv('SECRET_KEY')
+jwt = JWT(app, verify, identity)
 # ============= EOF =============================================
