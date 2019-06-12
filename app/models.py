@@ -15,13 +15,28 @@
 # ===============================================================================
 from sqlalchemy.ext.declarative import declared_attr
 
-from application import db
-import string
+from app.server import db
 
-seeds = string.ascii_uppercase
-ALPHAS = [a for a in seeds] + ['{}{}'.format(a, b)
-                               for a in seeds
-                               for b in seeds]
+# adapted from https://codereview.stackexchange.com/questions/182733/base-26-letters-and-base-10-using-recursion
+BASE = 26
+A_UPPERCASE = ord('A')
+
+
+def alphas(n):
+    a = ''
+    if n is not None and n >= 0:
+        def decompose(n):
+            while n:
+                n, rem = divmod(n, BASE)
+                yield rem
+
+        digits = reversed([chr(A_UPPERCASE + part) for part in decompose(n)])
+        a = ''.join(digits)
+    return a
+
+
+def alpha_to_int(l):
+    return sum((ord(li) - A_UPPERCASE) * BASE ** i for i, li in enumerate(reversed(l.upper())))
 
 
 class Base(object):
@@ -80,7 +95,7 @@ class AnalysisTbl(Base, db.Model):
     def step(self):
         inc = self.increment
         if inc is not None:
-            s = ALPHAS[inc]
+            s = alphas(inc)
         else:
             s = ''
         return s

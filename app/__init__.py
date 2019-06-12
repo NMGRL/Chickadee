@@ -13,29 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from flask import render_template
 
-from api import api_blueprint
-from application import app
-
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-
-@app.route('/api/')
-def api():
-    return render_template('api.html')
-
-
-@app.route('/api/info')
-def api_info():
-    return render_template('api_info.html')
-
-
-app.register_blueprint(api_blueprint)
 
 # ============= EOF =============================================
-
-

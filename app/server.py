@@ -13,22 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+from flask import render_template
+
 from flask import Flask
 from os import getenv
 
 from flask_jwt import JWT
 from flask_sqlalchemy import SQLAlchemy
-from auth import verify, identity
+from app.auth import verify, identity
 
-
-class Chickadee(Flask):
-    def __init__(self, *args, **kw):
-        super(Chickadee, self).__init__(*args, **kw)
-        self.jinja_options = dict(Flask.jinja_options)
-        # self.jinja_options['extensions'] = ['jinja2_highlight.HighlightExtension']
-
-
-app = Chickadee(__name__)
 
 user = getenv('ARGONSERVER_DB_USER')
 pwd = getenv('ARGONSERVER_DB_PWD')
@@ -36,10 +29,24 @@ host = getenv('ARGONSERVER_HOST')
 dbname = getenv('PYCHRON_DB_NAME')
 
 uri = 'mysql+pymysql://{}:{}@{}/{}?connect_timeout=3'.format(user, pwd, host, dbname)
+
+app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-
 app.config['SECRET_KEY'] = getenv('SECRET_KEY')
+
+db = SQLAlchemy(app)
 jwt = JWT(app, verify, identity)
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
+from app.api import api_blueprint
+app.register_blueprint(api_blueprint)
+
 # ============= EOF =============================================
+
+

@@ -18,10 +18,11 @@ import os
 from flask_restful import Resource, Api
 from flask import Blueprint, request, jsonify
 from flask_jwt import jwt_required
-from models import SampleTbl, ProjectTbl, MaterialTbl, PrincipalInvestigatorTbl, AnalysisTbl, IrradiationPositionTbl
+from app.models import SampleTbl, ProjectTbl, MaterialTbl, PrincipalInvestigatorTbl, AnalysisTbl, IrradiationPositionTbl
 
 api_blueprint = Blueprint('api', __name__)
-api = Api(api_blueprint, prefix='/api/v1')
+VERSION = 1
+api = Api(api_blueprint, prefix='/api/v{}'.format(VERSION))
 
 
 def auth(func):
@@ -35,6 +36,7 @@ def auth(func):
 class NameResource(Resource):
     def _get_results(self, model):
         args = request.args
+
         if args.get('all') == '1':
             q = model.query
         else:
@@ -44,18 +46,44 @@ class NameResource(Resource):
             else:
                 q = self._handle_get_results(args)
 
-        return q.all()
+        if q is None:
+            ret = self._handle_get_doc()
+        else:
+            ret = q.all()
+        return ret
 
     @auth
     def get(self):
         results = self._get_results(self._model_klass)
-        return jsonify([self._make_result(result) for result in results])
+        if isinstance(results, list):
+            results = [self._make_result(result) for result in results]
+
+        return jsonify(results)
 
     def _make_result(self, ri):
         raise NotImplementedError
 
-    def _handle_get_results(self):
-        raise NotImplementedError
+    def _handle_get_results(self, args):
+        return
+
+    def _get_description(self):
+        return 'No description'
+
+    def _get_parameters(self):
+        return
+
+    def _get_example(self):
+        return
+
+    def _get_fields(self):
+        return
+
+    def _handle_get_doc(self):
+        return {'success': {'v': VERSION,
+                            'description': self._get_description(),
+                            'options': {'parameters': self._get_parameters()},
+                            'example': self._get_example(),
+                            'fields': self._get_fields()}}
 
 
 class Sample(NameResource):
@@ -75,12 +103,43 @@ class Sample(NameResource):
             q = q.filter(ProjectTbl.name == project)
             return q
 
+    def _get_description(self):
+        return 'Route giving access to samples'
+
+    def _get_parameters(self):
+        return {'name': 'Sample name',
+                'project': 'project name'}
+
+    def _get_example(self):
+        return 'api/v{}/sample?project=Toba'.format(VERSION)
+
+    def _get_fields(self):
+        return {'id': 'Sample ID',
+                'material': 'Material name',
+                'grainsize': 'Material grainsize',
+                'project': 'Project name',
+                'principal investigator': 'Principal Investigator name'}
+
 
 class Project(NameResource):
     _model_klass = ProjectTbl
 
     def _make_result(self, ri):
         return {'id': ri.id, 'name': ri.name, 'principal_investigator': ri.principal_investigator.full_name}
+
+    def _get_description(self):
+        return 'Route giving access to projects'
+
+    def _get_parameters(self):
+        return {'name': 'project name'}
+
+    def _get_example(self):
+        return 'api/v{}/project?name=Toba'.format(VERSION)
+
+    def _get_fields(self):
+        return {'id': 'Project ID',
+                'name': 'Project name',
+                'principal investigator': 'Principal Investigator name'}
 
 
 class Material(NameResource):
@@ -109,7 +168,7 @@ class Analysis(Resource):
             return {'RunID': r.runid,
                     'Identifier': r.irradiation_position.identifier,
                     'Aliquot': r.aliquot,
-                    'Increment': (r.increment,r.step),
+                    'Increment': (r.increment, r.step),
                     'RunDate': r.timestamp.isoformat(),
                     'Sample': r.irradiation_position.sample.name,
                     'Material': r.irradiation_position.sample.material.name,
