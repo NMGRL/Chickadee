@@ -16,7 +16,3 @@ WORKDIR /project
 
 # for production
 CMD ["/usr/bin/supervisord"]
-
-# for development only
-#ENV PYTHONPATH /project
-#CMD ["python", "app/wsgi.py"]

@@ -25,13 +25,16 @@ A_UPPERCASE = ord('A')
 def alphas(n):
     a = ''
     if n is not None and n >= 0:
-        def decompose(n):
-            while n:
-                n, rem = divmod(n, BASE)
-                yield rem
+        if n == 0:
+            a = 'A'
+        else:
+            def decompose(n):
+                while n:
+                    n, rem = divmod(n, BASE)
+                    yield rem
 
-        digits = reversed([chr(A_UPPERCASE + part) for part in decompose(n)])
-        a = ''.join(digits)
+            digits = reversed([chr(A_UPPERCASE + part) for part in decompose(n)])
+            a = ''.join(digits)
     return a
 
 
@@ -60,6 +63,8 @@ class SampleTbl(Base, Named, db.Model):
 
 
 class ProjectTbl(Base, Named, db.Model):
+    comment = db.Column(db.BLOB)
+    checkin_date = db.Column(db.Date)
     principal_investigatorID = db.Column(db.Integer, db.ForeignKey('PrincipalInvestigatorTbl.id'))
 
     principal_investigator = db.relationship('PrincipalInvestigatorTbl', backref=db.backref('projects', lazy=True))

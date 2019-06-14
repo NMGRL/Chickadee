@@ -3,11 +3,12 @@ services:
   app:
     build:
       context: .
+      dockerfile: DockerfileDev
     ports:
       - "5000:5000"
     volumes:
       - .:/project
     environment:
-      FLASK_ENV: production
+      FLASK_ENV: development
     env_file:
       - .env
